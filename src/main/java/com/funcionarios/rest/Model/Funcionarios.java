@@ -1,6 +1,6 @@
 package com.funcionarios.rest.Model;
 
-
+import java.time.LocalDate;
 import java.util.Objects;
 
 import jakarta.persistence.Column;
@@ -25,10 +25,10 @@ public class Funcionarios {
     private String cpf;
 
     @Column(nullable = false)
-    private int idade;
+    private LocalDate dataNascimento;
 
     @Column(nullable = false)
-    private String telefone;
+    private String ramal;
 
     @Column(nullable = false)
     private String telefoneEmergencia;
@@ -40,7 +40,25 @@ public class Funcionarios {
     private int tempoContrato;
 
     @Column(nullable = false)
-    private boolean ativo = true; // Por padrão, consideramos que um funcionário está ativo
+    private boolean ativo = true;
+
+
+    @Override
+	public int hashCode() {
+		return Objects.hash(id);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Funcionarios other = (Funcionarios) obj;
+		return id == other.id;
+	}
 
 	public long getId() {
 		return id;
@@ -74,20 +92,20 @@ public class Funcionarios {
 		this.cpf = cpf;
 	}
 
-	public int getIdade() {
-		return idade;
+	public LocalDate getDataNascimento() {
+		return dataNascimento;
 	}
 
-	public void setIdade(int idade) {
-		this.idade = idade;
+	public void setDataNascimento(LocalDate dataNascimento) {
+		this.dataNascimento = dataNascimento;
 	}
 
-	public String getTelefone() {
-		return telefone;
+	public String getRamal() {
+		return ramal;
 	}
 
-	public void setTelefone(String telefone) {
-		this.telefone = telefone;
+	public void setRamal(String ramal) {
+		this.ramal = ramal;
 	}
 
 	public String getTelefoneEmergencia() {
@@ -122,22 +140,15 @@ public class Funcionarios {
 		this.ativo = ativo;
 	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(id);
-	}
+	public int getIdade() {
+        return calcularIdade(dataNascimento);
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Funcionarios other = (Funcionarios) obj;
-		return id == other.id;
-	}
-
-
+    private int calcularIdade(LocalDate dataNascimento) {
+        if (dataNascimento == null) {
+            return 0;
+        }
+        LocalDate hoje = LocalDate.now();
+        return hoje.minusYears(dataNascimento.getYear()).getYear();
+    }
 }
