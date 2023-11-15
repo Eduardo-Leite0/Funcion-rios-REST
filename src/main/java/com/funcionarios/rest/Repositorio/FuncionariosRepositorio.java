@@ -9,4 +9,6 @@ public interface FuncionariosRepositorio extends JpaRepository<Funcionarios, Lon
     List<Funcionarios> findByAtivoTrue();
     Optional<Funcionarios> findByIdAndAtivoTrue(Long id);
     List<Funcionarios> findByAtivoFalse(); // buscar funcionários inativos
+	boolean existsByCpfAndAtivoTrue(String cpf);
+	boolean existsByRamalAndAtivoTrue(String ramal);
 }
