@@ -27,12 +27,14 @@ public class FuncionariosController {
     @ResponseStatus(HttpStatus.CREATED)
     public Funcionarios adicionar(@RequestBody Funcionarios funcionarios) {
         validarFuncionario(funcionarios);
+        validarCpf(funcionarios);
+        validarRamal(funcionarios.getRamal());
         return Funcrep.save(funcionarios);
     }
 
     @GetMapping("/{id}")
     public Funcionarios obterPorId(@PathVariable Long id) {
-        return Funcrep.findByIdAndAtivoTrue(id)
+        return Funcrep.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Funcionário não encontrado com o ID: " + id));
     }
 
@@ -42,31 +44,13 @@ public class FuncionariosController {
 
         Funcionarios funcionarioExistente = Funcrep.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Funcionário não encontrado com o ID: " + id));
+        validarCpf(funcionariosAtualizados);  
+        validarRamal(funcionariosAtualizados.getRamal());
 
-        if (!funcionarioExistente.isAtivo()) {
-            throw new IllegalArgumentException("Funcionário inativo encontrado com o ID: " + id);
-        }
-
-        if (funcionariosAtualizados.getSobrenome() != null) {
-            funcionarioExistente.setSobrenome(funcionariosAtualizados.getSobrenome());
-        }
-        if (funcionariosAtualizados.getTelefone() != null) {
-            funcionarioExistente.setTelefone(funcionariosAtualizados.getTelefone());
-        }
-        if (funcionariosAtualizados.getTelefoneEmergencia() != null) {
-            funcionarioExistente.setTelefoneEmergencia(funcionariosAtualizados.getTelefoneEmergencia());
-        }
-        if (funcionariosAtualizados.getCargo() != null) {
-            funcionarioExistente.setCargo(funcionariosAtualizados.getCargo());
-        }
-        if (funcionariosAtualizados.getTempoContrato() > 0) {
-            funcionarioExistente.setTempoContrato(funcionariosAtualizados.getTempoContrato());
-        }
-        funcionarioExistente.setAtivo(true); // Define o funcionário como ativo
+        atualizarFuncionario(funcionariosAtualizados, funcionarioExistente);
 
         return Funcrep.save(funcionarioExistente);
     }
-
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -82,6 +66,14 @@ public class FuncionariosController {
             throw new IllegalArgumentException("Funcionário não pode ser nulo.");
         }
 
+        if (funcionarios.getDataNascimento() == null) {
+            throw new IllegalArgumentException("Data de nascimento não pode ser nula.");
+        }
+
+        if (funcionarios.getIdade() <= 0) {
+            throw new IllegalArgumentException("Idade deve ser maior que zero.");
+        }
+
         if (funcionarios.getNome() == null || funcionarios.getNome().trim().isEmpty()) {
             throw new IllegalArgumentException("Nome inválido.");
         }
@@ -92,16 +84,10 @@ public class FuncionariosController {
 
         if (funcionarios.getCpf() == null || funcionarios.getCpf().trim().isEmpty()) {
             throw new IllegalArgumentException("CPF não pode ser nulo ou vazio.");
-        } else if (!validarCpf(funcionarios.getCpf())) {
-            throw new IllegalArgumentException("CPF inválido. Deve ser digitado xxx.xxx.xxx-xx ou xxxxxxxxxxx.");
         }
 
-        if (funcionarios.getIdade() <= 0) {
-            throw new IllegalArgumentException("Idade deve ser maior que zero.");
-        }
-
-        if (funcionarios.getTelefone() == null || funcionarios.getTelefone().trim().isEmpty()) {
-            throw new IllegalArgumentException("Telefone não pode ser nulo ou vazio.");
+        if (funcionarios.getRamal() == null || funcionarios.getRamal().trim().isEmpty()) {
+            throw new IllegalArgumentException("Ramal não pode ser nulo ou vazio.");
         }
 
         if (funcionarios.getTelefoneEmergencia() == null || funcionarios.getTelefoneEmergencia().trim().isEmpty()) {
@@ -118,30 +104,85 @@ public class FuncionariosController {
     }
     
     public List<Funcionarios> listarInativos() {
-        return Funcrep.findByAtivoFalse(); // Retorna apenas funcionários inativos
+        return Funcrep.findByAtivoFalse();
     }
 
     @PutMapping("/restaurar/{id}")
     public Funcionarios restaurarFuncionario(@PathVariable Long id) {
         return Funcrep.findById(id)
                 .map(funcionarioExistente -> {
-                    funcionarioExistente.setAtivo(true); // Define o funcionário como ativo
+                    funcionarioExistente.setAtivo(true);
                     return Funcrep.save(funcionarioExistente);
                 })
                 .orElseThrow(() -> new IllegalArgumentException("Funcionário não encontrado com o ID: " + id));
     }
 
-    private boolean validarCpf(String cpf) {
-        String regexCpfFormatado = "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}";
-        String regexCpfSemFormato = "\\d{11}";
+    private void validarCpf(Funcionarios funcionarios) {
+        try {
+            if (Funcrep.existsByCpfAndAtivoTrue(funcionarios.getCpf())) {
+                throw new IllegalArgumentException("CPF já está em uso por outro funcionário.");
+            }
 
-        Pattern patternCpfFormatado = Pattern.compile(regexCpfFormatado);
-        Pattern patternCpfSemFormato = Pattern.compile(regexCpfSemFormato);
+            String regexCpfFormatado = "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}";
+            String regexCpfSemFormato = "\\d{11}";
 
-        Matcher matcherCpfFormatado = patternCpfFormatado.matcher(cpf);
-        Matcher matcherCpfSemFormato = patternCpfSemFormato.matcher(cpf);
+            Pattern patternCpfFormatado = Pattern.compile(regexCpfFormatado);
+            Pattern patternCpfSemFormato = Pattern.compile(regexCpfSemFormato);
 
-        return matcherCpfFormatado.matches() || matcherCpfSemFormato.matches();
+            Matcher matcherCpfFormatado = patternCpfFormatado.matcher(funcionarios.getCpf());
+            Matcher matcherCpfSemFormato = patternCpfSemFormato.matcher(funcionarios.getCpf());
+
+            if (!(matcherCpfFormatado.matches() || matcherCpfSemFormato.matches())) {
+                throw new IllegalArgumentException("CPF inválido. Deve ser digitado xxx.xxx.xxx-xx ou xxxxxxxxxxx.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Exceção capturada em validarCpf: " + e.getMessage());
+        }
+    }
+
+    private void validarRamal(String ramal) {
+        try {
+            if (Funcrep.existsByRamalAndAtivoTrue(ramal)) {
+                throw new IllegalArgumentException("Ramal já está em uso por outro funcionário.");
+            }
+
+            String regexRamalFormatado = "3122.\\-\\d{4}";
+            String regexRamalSemFormato = "\\d{8}";
+
+            Pattern patternRamalFormatado = Pattern.compile(regexRamalFormatado);
+            Pattern patternRamalSemFormato = Pattern.compile(regexRamalSemFormato);
+
+            Matcher matcherRamalFormatado = patternRamalFormatado.matcher(ramal);
+            Matcher matcherRamalSemFormato = patternRamalSemFormato.matcher(ramal);
+
+            if (!(matcherRamalFormatado.matches() || matcherRamalSemFormato.matches())) {
+                throw new IllegalArgumentException("Ramal inválido. Deve ser digitado 3122-XXXX ou 3122XXXX.");
+            }
+        } catch (Exception e) {
+            System.out.println("Exceção capturada em validarRamal: " + e.getMessage());
+        }
+    }
+
+    private void atualizarFuncionario(Funcionarios funcionariosAtualizados, Funcionarios funcionarioExistente) {
+        if (funcionariosAtualizados.getSobrenome() != null) {
+            funcionarioExistente.setSobrenome(funcionariosAtualizados.getSobrenome());
+        }
+        if (funcionariosAtualizados.getRamal() != null) {
+            funcionarioExistente.setRamal(funcionariosAtualizados.getRamal());
+        }
+        if (funcionariosAtualizados.getTelefoneEmergencia() != null) {
+            funcionarioExistente.setTelefoneEmergencia(funcionariosAtualizados.getTelefoneEmergencia());
+        }
+        if (funcionariosAtualizados.getCargo() != null) {
+            funcionarioExistente.setCargo(funcionariosAtualizados.getCargo());
+        }
+        if (funcionariosAtualizados.getTempoContrato() > 0) {
+            funcionarioExistente.setTempoContrato(funcionariosAtualizados.getTempoContrato());
+        }
+        if (funcionariosAtualizados.getDataNascimento() != null) {
+            funcionarioExistente.setDataNascimento(funcionariosAtualizados.getDataNascimento());
+        }
+        funcionarioExistente.setAtivo(true);
     }
 }
-
