@@ -5,7 +5,7 @@ Durante o sexto período do curso de Engenharia da Computação na Universidade 
 
 ## Objetivo do Projeto
 
-O objetivo central deste projeto é criar um sistema de cadastro de funcionários, proporcionando operações básicas de criação, leitura, atualização e exclusão (CRUD). O sistema visa armazenar informações como nome, cargo e salário dos funcionários, contribuindo para uma gestão eficiente dos recursos humanos da empresa.
+O objetivo central deste projeto é criar um sistema de cadastro de funcionários, proporcionando operações básicas de criação, leitura, atualização e exclusão (CRUD). O sistema visa armazenar informações como nome, cargo e tempo de contrato dos funcionários, contribuindo para uma gestão eficiente dos recursos humanos da empresa.
 
 ## Atriubutos Funcionários:
 - Nome;
